@@ -6,18 +6,28 @@
 
 int db_set_str(struct database *db, int idx, struct str *key, struct str *value)
 {   
-    
-    return 0;
+    struct lru_map *m = db->get_db(db, idx);
+    if (m == NULL) return 0;
+    struct db_entry *entry = malloc(sizeof(struct db_entry));
+    entry->type = RAW;
+    entry->data = value;
+    m->op.put(m, key, sizeof(struct str), entry);
+    return 1;
 }
 
 struct str *db_get_str(struct database *db, int idx, struct str *key)
 {
-    return NULL;
+    struct lru_map *m = db->get_db(db, idx);
+    if (m == NULL) return NULL;
+    struct db_entry *entry = m->op.get(m, key, sizeof(struct str));
+    if (entry == NULL || entry->type != RAW) return NULL;
+    return entry->data;
 }
 
 struct lru_map *db_get_database(struct database *db, int idx)
 {
-    return NULL;
+    if (idx < 0 || idx >= MAX_DB) return NULL;
+    return db->maps[idx];
 }
 
 struct database *create_database()

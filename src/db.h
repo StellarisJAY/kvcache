@@ -15,7 +15,7 @@ enum db_entry_type {
 struct db_entry 
 {
     enum db_entry_type type;
-    struct lru_entry *data;
+    void *data;
 };
 
 struct database
