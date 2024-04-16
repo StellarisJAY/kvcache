@@ -27,7 +27,7 @@ ifeq ($(TEST), yes)
 CFLAGS+=-I$(TEST_DIR)
 endif
 
-$(BUILD_DIR)/$(TARGET): $(OBJS) $(DEPS) $(TESTS)
+$(BUILD_DIR)/$(TARGET): $(OBJS) $(DEPS) $(TEST_OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
@@ -38,7 +38,7 @@ $(INCLUDE_DIR)/%.o: $(INCLUDE_DIR)/%.c
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 $(TEST_DIR)/%.o: $(TEST_DIR)/%.c
-	$(CC) -o $@ $< $(CFLAGS)
+	$(CC) -c -o $@ $< $(CFLAGS)
 
 .PHONY: clean
 clean:
