@@ -24,7 +24,7 @@ CFLAGS+=-g
 endif
 
 ifeq ($(TEST), yes)
-CFLAGS+=-I$(TEST_DIR)
+CFLAGS+=-I$(TEST_DIR) -D TEST
 endif
 
 $(BUILD_DIR)/$(TARGET): $(OBJS) $(DEPS) $(TEST_OBJS)
