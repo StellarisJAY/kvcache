@@ -13,7 +13,7 @@ int db_set_str(struct database *db, int idx, struct str *key, struct str *value)
     struct db_entry *entry = malloc(sizeof(struct db_entry));
     entry->type = RAW;
     entry->data = value;
-    m->op.put(m, key, sizeof(struct str), entry);
+    m->op.put(m, key, entry);
     return 1;
 }
 
@@ -21,7 +21,7 @@ struct str *db_get_str(struct database *db, int idx, struct str *key)
 {
     struct lru_map *m = db->get_db(db, idx);
     if (m == NULL) return NULL;
-    struct db_entry *entry = m->op.get(m, key, sizeof(struct str));
+    struct db_entry *entry = m->op.get(m, key);
     if (entry == NULL || entry->type != RAW) return NULL;
     return entry->data;
 }
@@ -36,7 +36,7 @@ struct hashmap *db_get_hash(struct database *db, int idx, struct str *key)
 {
     struct lru_map *m = db->get_db(db, idx);
     if (m == NULL) return NULL;
-    struct db_entry *entry = m->op.get(m, key, sizeof(struct str));
+    struct db_entry *entry = m->op.get(m, key);
     if (entry == NULL || entry->type != HASH) return NULL;
     return entry->data;
 }
@@ -45,7 +45,7 @@ struct link_list *db_get_list(struct database *db, int idx, struct str *key)
 {
     struct lru_map *m = db->get_db(db, idx);
     if (m == NULL) return NULL;
-    struct db_entry *entry = m->op.get(m, key, sizeof(struct str));
+    struct db_entry *entry = m->op.get(m, key);
     if (entry == NULL || entry->type != LIST) return NULL;
     return entry->data;
 }
@@ -54,12 +54,12 @@ void db_put_entry(struct database *db, int idx, struct str *key, enum db_entry_t
 {
     struct lru_map *m = db->get_db(db, idx);
     if (m == NULL) return;
-    struct db_entry *entry = m->op.get(m, key, sizeof(struct str));
+    struct db_entry *entry = m->op.get(m, key);
     if (entry != NULL) return;
     entry = malloc(sizeof(struct db_entry));
     entry->type = type;
     entry->data = value;
-    m->op.put(m, key, sizeof(struct str), entry);
+    m->op.put(m, key, entry);
 }
 
 struct database *create_database()

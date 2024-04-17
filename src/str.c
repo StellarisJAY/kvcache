@@ -23,7 +23,7 @@ int compare_str(void *a, void *b)
     }
 }
 
-unsigned long long str_hash_func(void *s, unsigned int key_len)
+unsigned long long str_hash_func(void *s)
 {
     struct str *s0 = s;
     const uint8_t *data = s0->buf;

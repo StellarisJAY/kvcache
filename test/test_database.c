@@ -1,5 +1,6 @@
 #include "test.h"
 #include "db.h"
+#include "list.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include "str.h"
@@ -25,6 +26,10 @@ void test_database_str()
         printf("get key1 failed, expect: %p, got: %p\n", val2, ret1);
         return;
     }
+
+    struct str *key4 = from_char_array("key4", 4);
+    struct link_list *val4 = create_list();
+    db->put_entry(db, 0, key4, LIST, val4);
 
     printf("test database str passed!\n");
 }

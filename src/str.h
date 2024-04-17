@@ -9,5 +9,5 @@ struct str
 
 struct str *from_char_array(char *buf, unsigned int len);
 int compare_str(void *a, void *b);
-unsigned long long str_hash_func(void *s, unsigned int key_len);
+unsigned long long str_hash_func(void *s);
 #endif

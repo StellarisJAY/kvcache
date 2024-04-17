@@ -28,12 +28,12 @@ struct lru_map {
     unsigned int size;
 
     struct lru_map_op {
-        void (*put)(struct lru_map *self, void *key, unsigned int keyLen, void *val);
-        void (*del)(struct lru_map *self, void *key, unsigned int keyLen);
-        void *(*get)(struct lru_map *self, void *key, unsigned int keyLen);
+        void (*put)(struct lru_map *self, void *key, void *val);
+        void (*del)(struct lru_map *self, void *key);
+        void *(*get)(struct lru_map *self, void *key);
         void (*free)(struct lru_map *self);
     } op;
 };
 
-struct lru_map *create_lru_map(unsigned int capacity, int (*compare)(void*, void*), unsigned long long (*hash_func)(void*, unsigned int));
+struct lru_map *create_lru_map(unsigned int capacity, int (*compare)(void*, void*), unsigned long long (*hash_func)(void*));
 #endif

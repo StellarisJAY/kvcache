@@ -12,10 +12,10 @@ void test_hashmap()
     int val1 = 10;
     int val2 = 20;
     unsigned int key_len = sizeof(struct str);
-    hmap->op.hash_put(hmap, key1, key_len, &val1);
-    hmap->op.hash_put(hmap, key2, key_len, &val1);
-    hmap->op.hash_put(hmap, key1, key_len, &val2);
-    int *ret1 = hmap->op.hash_get(hmap, key1, key_len);
+    hmap->op.hash_put(hmap, key1, &val1);
+    hmap->op.hash_put(hmap, key2, &val1);
+    hmap->op.hash_put(hmap, key1, &val2);
+    int *ret1 = hmap->op.hash_get(hmap, key1);
     if (ret1 == NULL) {
         printf("test key1 failed\n");
         return;
@@ -25,7 +25,7 @@ void test_hashmap()
         return;
     }
 
-    int *ret2 = hmap->op.hash_get(hmap, key2, key_len);
+    int *ret2 = hmap->op.hash_get(hmap, key2);
     if (ret2 == NULL) {
         printf("test key2 failed\n");
         return;
@@ -35,7 +35,7 @@ void test_hashmap()
         return;
     }
 
-    int *ret3 = hmap->op.hash_get(hmap, key3, key_len);
+    int *ret3 = hmap->op.hash_get(hmap, key3);
     if (ret3 != NULL) {
         printf("test key3 failed, expect=%p,got=%p\n", NULL, ret3);
         return;

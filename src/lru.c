@@ -38,7 +38,7 @@ void lru_entry_add_prev(struct lru_entry *self, struct lru_entry *prev)
     prev->next = self;
 }
 
-struct lru_entry *create_lru_entry(void *key, unsigned int keyLen, void *val)
+struct lru_entry *create_lru_entry(void *key, void *val)
 {
     struct lru_entry *entry = malloc(sizeof(struct lru_entry));
     struct lru_entry_op op = {
@@ -49,13 +49,12 @@ struct lru_entry *create_lru_entry(void *key, unsigned int keyLen, void *val)
     entry->op = op;
     entry->key = key;
     entry->value = val;
-    entry->keyLen = keyLen;
     return entry;
 }
 
-void lru_map_put(struct lru_map *self, void *key, unsigned int keyLen, void *val)
+void lru_map_put(struct lru_map *self, void *key, void *val)
 {
-    struct lru_entry *old = self->hmap->op.hash_get(self->hmap, key, keyLen);
+    struct lru_entry *old = self->hmap->op.hash_get(self->hmap, key);
     if (old != NULL) {
         old->value = val;
         move_to_tail(self, old);
@@ -63,20 +62,20 @@ void lru_map_put(struct lru_map *self, void *key, unsigned int keyLen, void *val
         if (self->size == self->cap) {
             struct lru_entry *evict = self->head->next;
             evict->op.remove(evict);
-            self->hmap->op.hash_del(self->hmap, evict->key, evict->keyLen);
+            self->hmap->op.hash_del(self->hmap, evict->key);
             self->size--;
             free(evict);
         }
-        struct lru_entry *entry = create_lru_entry(key, keyLen, val);
+        struct lru_entry *entry = create_lru_entry(key, val);
         self->tail->op.add_prev(self->tail, entry);
         self->size++;
-        self->hmap->op.hash_put(self->hmap, key, keyLen, entry);
+        self->hmap->op.hash_put(self->hmap, key, entry);
     }
 }
 
-void lru_map_del(struct lru_map *self, void *key, unsigned int keyLen)
+void lru_map_del(struct lru_map *self, void *key)
 {
-    struct lru_entry *entry = self->hmap->op.hash_del(self->hmap, key, keyLen);
+    struct lru_entry *entry = self->hmap->op.hash_del(self->hmap, key);
     if (entry == NULL) {
         return;
     }
@@ -85,9 +84,9 @@ void lru_map_del(struct lru_map *self, void *key, unsigned int keyLen)
     free(entry);
 }
 
-void *lru_map_get(struct lru_map *self, void *key, unsigned int keyLen)
+void *lru_map_get(struct lru_map *self, void *key)
 {
-    struct lru_entry *entry = self->hmap->op.hash_get(self->hmap, key, keyLen);
+    struct lru_entry *entry = self->hmap->op.hash_get(self->hmap, key);
     if (entry == NULL) {
         return NULL;
     }
@@ -101,7 +100,7 @@ void lru_map_free(struct lru_map *self)
     free(self);
 }
 
-struct lru_map *create_lru_map(unsigned int capacity, int (*compare)(void*, void*), unsigned long long (*hash_func)(void*, unsigned int))
+struct lru_map *create_lru_map(unsigned int capacity, int (*compare)(void*, void*), unsigned long long (*hash_func)(void*))
 {
     struct lru_map *lru = malloc(sizeof(struct lru_map));
     struct lru_map_op op = {
@@ -113,8 +112,8 @@ struct lru_map *create_lru_map(unsigned int capacity, int (*compare)(void*, void
     lru->op = op;
     lru->cap = capacity;
     lru->hmap = create_hashmap(compare, hash_func);
-    lru->head = create_lru_entry(NULL, 0, NULL);
-    lru->tail = create_lru_entry(NULL, 0, NULL);
+    lru->head = create_lru_entry(NULL, NULL);
+    lru->tail = create_lru_entry(NULL, NULL);
 
     lru->head->next = lru->tail;
     lru->tail->prev = lru->head;

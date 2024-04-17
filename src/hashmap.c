@@ -3,9 +3,9 @@
 #include "highwayhash.h"
 #include <stdio.h>
 
-void hash_put(struct hashmap *hmap, void *key, unsigned int keyLen, void *val) 
+void hash_put(struct hashmap *hmap, void *key, void *val) 
 {
-    unsigned long long hash = hmap->op.hash_func(key, keyLen);
+    unsigned long long hash = hmap->op.hash_func(key);
     struct bucket *b = &hmap->bmap[hash % hmap->bmap_size];
     long hash_high = hash >> 32;
     for (; b != NULL; b = b->overflow) {
@@ -31,9 +31,9 @@ void hash_put(struct hashmap *hmap, void *key, unsigned int keyLen, void *val)
     hmap->size++;
 }
 
-void *hash_get(struct hashmap *hmap, void *key, unsigned int keyLen)
+void *hash_get(struct hashmap *hmap, void *key)
 {
-    unsigned long long hash = hmap->op.hash_func(key, keyLen);
+    unsigned long long hash = hmap->op.hash_func(key);
     struct bucket *b = &hmap->bmap[hash % hmap->bmap_size];
     long hash_high = hash >> 32;
     for (; b != NULL; b = b->overflow){
@@ -46,9 +46,9 @@ void *hash_get(struct hashmap *hmap, void *key, unsigned int keyLen)
     return NULL;
 }
 
-void *hash_del(struct hashmap *hmap, void *key, unsigned int keyLen)
+void *hash_del(struct hashmap *hmap, void *key)
 {
-    unsigned long long hash = hmap->op.hash_func(key, keyLen);
+    unsigned long long hash = hmap->op.hash_func(key);
     struct bucket *b = &hmap->bmap[hash % hmap->bmap_size];
     long hash_high = hash >> 32;
     for (; b != NULL; b = b->overflow) {
@@ -81,7 +81,7 @@ void hash_free(struct hashmap *hmap)
 }
 
 
-struct hashmap *create_hashmap(int (*compare)(void*, void*), unsigned long long (*hash_func)(void *, unsigned int))
+struct hashmap *create_hashmap(int (*compare)(void*, void*), unsigned long long (*hash_func)(void *))
 {
     struct hashmap *hmap = malloc(sizeof(struct hashmap));
     hmap->bmap_size = 16;

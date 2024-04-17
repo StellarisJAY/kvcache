@@ -3,4 +3,5 @@
 
 void test_hashmap();
 void test_database_str();
+void test_list();
 #endif

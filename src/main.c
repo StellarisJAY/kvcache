@@ -4,6 +4,7 @@ int main()
 {
     test_hashmap();
     test_database_str();
+    test_list();
     return 0;
 }
 #else
