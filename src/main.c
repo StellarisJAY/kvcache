@@ -5,6 +5,7 @@ int main()
     test_hashmap();
     test_database_str();
     test_list();
+    test_skiplist();
     return 0;
 }
 #else
