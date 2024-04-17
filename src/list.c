@@ -70,8 +70,9 @@ struct str *list_del_tail(struct link_list *list)
 
 struct str *list_get(struct link_list *list, int get_head)
 {
-    if (get_head) return list->head;
-    else return list->tail;
+    if (list->size == 0) return NULL;
+    if (get_head) return list->head->value;
+    else return list->tail->value;
 }
 
 void list_foreach(struct link_list *list, int (*cosumer)(struct list_node *node))
