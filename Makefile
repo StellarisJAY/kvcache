@@ -20,7 +20,7 @@ CC=gcc
 CFLAGS=-I$(SRC_DIR) -I$(INCLUDE_DIR)
 
 ifeq ($(DEBUG), yes)
-CFLAGS+=-g
+CFLAGS+=-g -D DEBUG
 endif
 
 ifeq ($(TEST), yes)
