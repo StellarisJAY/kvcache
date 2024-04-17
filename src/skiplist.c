@@ -56,7 +56,6 @@ void skiplist_insert(struct skiplist *s, struct str *key, double score)
     for (int i = levels; i < MAX_LEVELS; i++) {
         path[i]->levels[i].span += 1;
     }
-    // todo update spans
     s->size++;
 }
 

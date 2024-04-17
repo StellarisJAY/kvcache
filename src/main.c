@@ -6,6 +6,7 @@ int main()
     test_database_str();
     test_list();
     test_skiplist();
+    test_sorted_set();
     return 0;
 }
 #else
