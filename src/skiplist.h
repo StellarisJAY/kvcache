@@ -24,7 +24,8 @@ struct skiplist
     int size;
 
     void (*insert)(struct skiplist *s, struct str *key, double score);
-    int (*rank)(struct skiplist *s, double score);
+    int (*rank)(struct skiplist *s, struct str *key, double score);
+    void (*remove)(struct skiplist *s, struct str *key, double score);
     #ifdef DEBUG
     void (*print_skiplist)(struct skiplist *s);
     #endif
