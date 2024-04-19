@@ -6,4 +6,5 @@ void test_database_str();
 void test_list();
 void test_skiplist();
 void test_sorted_set();
+void test_threadpool();
 #endif

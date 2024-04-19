@@ -7,6 +7,7 @@ int main()
     test_list();
     test_skiplist();
     test_sorted_set();
+    test_threadpool();
     return 0;
 }
 #else
