@@ -80,29 +80,26 @@ int server_accept(struct server *s, struct event ev)
 void server_handle_conn_read(struct server *s, struct connection *conn)
 {
     char buf[256];
-    while(1) {
-        int n = recv(conn->fd, buf, 256, MSG_DONTWAIT);
-        if (n == -1) {
-            if (errno == EWOULDBLOCK || errno == EAGAIN) break;
-            else return;
-        }
-    }
+    int n = read(conn->fd, buf, 256);
     #ifdef DEBUG
     printf("[DEBUG] recv from fd=%d dataLen= %ld\n", conn->fd, strlen(buf));
     #endif
     struct resp_cmd req;
-    if(decode_resp_cmd(buf, 256, &req)==-1) {
+    if(decode_resp_cmd(buf, n, &req)==-1) {
         return;
     }
     struct resp_cmd resp;
     if (s->db->handle_command(s->db, &req, &resp)==0) {
+        if (conn->write_buf) free(conn->write_buf);
         conn->buf_len = encode_resp_cmd(&conn->write_buf, &resp);
     }
+    free_resp_cmd(&req);
+    free_resp_cmd(&resp);
 }
 
 void server_handle_conn_write(struct server *s, struct connection *conn)
 {
-    int n = send(conn->fd, conn->write_buf, conn->buf_len, MSG_DONTWAIT);
+    int n = write(conn->fd, conn->write_buf, conn->buf_len);
     if (n < 0) {
         printf("write resp error: %s\n", strerror(errno));
         return;
@@ -119,6 +116,7 @@ void server_handle_conn_hup(struct server *s, struct connection *conn)
     #endif
     eventloop_delete(s->eventloop, conn->fd);
     close(conn->fd);
+    s->conns[conn->fd] = NULL;
     free(conn);
 }
 

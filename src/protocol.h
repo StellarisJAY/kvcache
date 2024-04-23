@@ -10,17 +10,19 @@ enum resp_type
     ARRAY='*'
 };
 
-struct resp_cmd_array
-{
-    unsigned int n;
-    void **data;
-};
-
 struct resp_cmd
 {
     enum resp_type type;
     void *data;
 };
+
+struct resp_cmd_array
+{
+    unsigned int n;
+    // use nested resp_cmd to know data's type
+    struct resp_cmd *data;
+};
+
 int decode_simple_string(char *buf, int start, int n, struct resp_cmd *cmd);
 int decode_bulk_string(char *buf, int start, int n, struct resp_cmd *cmd);
 int decode_array(char *buf, int start, int n, struct resp_cmd *cmd);

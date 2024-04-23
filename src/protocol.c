@@ -41,7 +41,7 @@ int decode_bulk_string(char *buf, int start, int n, struct resp_cmd *cmd)
     int str_start = num_end + 2;
     char *str = malloc(len);
     memcpy(str, buf+str_start, len);
-    cmd->data = (void *)from_char_array(str, len);
+    cmd->data = (void *)with_char_array(str, len);
     return str_start + len + 2;
 }
 
@@ -64,7 +64,7 @@ int decode_array(char *buf, int start, int n, struct resp_cmd *cmd)
 
     int nested_start = num_end+2;
     struct resp_cmd_array *arr = malloc(sizeof(struct resp_cmd_array));
-    arr->data = malloc(sizeof(void*) * count);
+    arr->data = malloc(sizeof(struct resp_cmd) * count);
     arr->n = count;
     struct resp_cmd temp_cmd;
     for (int i = 0; i < count; i++) {
@@ -82,7 +82,7 @@ int decode_array(char *buf, int start, int n, struct resp_cmd *cmd)
             #endif
         }
         if (res < 0) goto ERROR;
-        arr->data[i] = temp_cmd.data;
+        arr->data[i] = temp_cmd;
         nested_start = res;
     }
     cmd->data = arr;
@@ -165,8 +165,7 @@ void free_resp_cmd(struct resp_cmd *cmd)
     case ARRAY:
         struct resp_cmd_array *arr = (struct resp_cmd_array*)cmd->data;
         for (int i = 0; i < arr->n; i++) {
-            // todo we need to know data's type
-            free(arr->data[i]);
+            free_resp_cmd(&arr->data[i]);
         }
         free(arr->data);
         free(arr);

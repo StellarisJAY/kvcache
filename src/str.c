@@ -12,6 +12,14 @@ struct str *from_char_array(char *arr, unsigned int len)
     return s;
 }
 
+struct str *with_char_array(char *arr, unsigned int len)
+{
+    struct str *s = malloc(sizeof(struct str));
+    s->buf = arr;
+    s->length = len;
+    return s;
+}
+
 int compare_str(void *a, void *b)
 {
     struct str *a0 = a;
