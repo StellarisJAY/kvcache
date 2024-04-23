@@ -31,9 +31,9 @@ int eventloop_add(struct eventloop *el, int fd, int mask)
     struct epoll_state *state = el->data;
     struct epoll_event event;
     event.data.fd = fd;
-    if (mask & EVENT_READ != 0) event.events |= EPOLLIN | EPOLLET;
+    if (mask & EVENT_READ != 0) event.events |= EPOLLIN;
     if (mask & EVENT_WRITE != 0) event.events |= EPOLLOUT;
-    if (mask & EVENT_HUP) event.events |= EPOLLHUP;
+    if (mask & EVENT_HUP) event.events |= EPOLLHUP | EPOLLRDHUP;
     if (mask & EVENT_ERR) event.events |= EPOLLERR;
     if (epoll_ctl(state->epfd, EPOLL_CTL_ADD, fd, &event) < 0) {
         printf("epoll_ctl_add error: %s\n", strerror(errno));
@@ -56,7 +56,7 @@ int eventloop_delete(struct eventloop *el, int fd)
 int eventloop_wait(struct eventloop *el)
 {
     struct epoll_state *state = el->data;
-    int n = epoll_wait(state->epfd, state->events, el->size, 0);
+    int n = epoll_wait(state->epfd, state->events, el->size, -1);
     if (n < 0) {
         printf("epoll_wait error: %s\n", strerror(errno));
         return -1;
@@ -67,7 +67,7 @@ int eventloop_wait(struct eventloop *el)
         if (ev.events & EPOLLIN) mask |=  EVENT_READ;
         if (ev.events & EPOLLOUT) mask |= EVENT_WRITE;
         if (ev.events & EPOLLERR) mask |= EVENT_ERR;
-        if (ev.events & EPOLLHUP) mask |= EVENT_HUP;
+        if (ev.events & EPOLLHUP || ev.events & EPOLLRDHUP) mask |= EVENT_HUP;
         el->ready_events[i].fd = ev.data.fd;
         el->ready_events[i].mask = mask;
     }
