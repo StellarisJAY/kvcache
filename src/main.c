@@ -2,12 +2,16 @@
 #include "test.h"
 int main() 
 {
-    test_hashmap();
-    test_database_str();
-    test_list();
-    test_skiplist();
-    test_sorted_set();
-    test_threadpool();
+    // test_hashmap();
+    // test_database_str();
+    // test_list();
+    // test_skiplist();
+    // test_sorted_set();
+    // test_threadpool();
+    test_decode_resp_cmd();
+    #ifdef BENCH
+    benchmark_hashmap();
+    #endif
     return 0;
 }
 #else
@@ -27,7 +31,10 @@ int main(int argc, char *argv[])
         .port = port,
     };
     struct server *s = create_server(config);
-    s->op.start(s);
+    if (s) {
+        s->op.start(s);
+    }
+    
     return 0;
 }
 #endif
