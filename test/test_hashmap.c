@@ -2,6 +2,9 @@
 #include "str.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
+#include <x264.h>
+#include <x264_config.h>
 
 void test_hashmap()
 {
@@ -42,3 +45,21 @@ void test_hashmap()
     }
     printf("hashmap test passed\n");
 }
+#ifdef BENCH
+#include <sys/time.h>
+void benchmark_hashmap()
+{
+    long long N = 1000000;
+    struct str *key = from_char_array("helloworld", 10);
+    long long val = 0;
+    struct hashmap *hmap = create_hashmap(compare_str, str_hash_func);
+    struct timeval start, end;
+    gettimeofday(&start, NULL);
+    for (long long i = 0; i < N; i++) {
+        hmap->op.hash_put(hmap, key, &val);
+        val = i;
+    }
+    gettimeofday(&end, NULL);
+    printf("%lld ops, time used:%lldus %lldns/op\n", N, (long long)end.tv_usec - (long long)start.tv_usec, (end.tv_usec - start.tv_usec)*1000LL/N);
+}
+#endif
