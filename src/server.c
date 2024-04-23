@@ -7,6 +7,10 @@
 #include <string.h>
 #include <errno.h>
 #include <stdio.h>
+#include <fcntl.h>
+#include <unistd.h>
+
+#include "protocol.h"
 
 int server_start(struct server *s)
 {
@@ -39,6 +43,10 @@ void server_event_handler(struct server *s)
             }
             struct connection *conn = s->conns[ev.fd];
             if (conn ==NULL) continue;
+            if (ev.mask & EVENT_HUP || ev.mask & EVENT_ERR) {
+                s->op.handle_conn_hup(s, conn);
+                continue;
+            }
             if (ev.mask & EVENT_READ) s->op.handle_conn_read(s, conn);
             if (ev.mask & EVENT_WRITE) s->op.handle_conn_write(s, conn);
         }
@@ -55,10 +63,15 @@ int server_accept(struct server *s, struct event ev)
         free(conn);
         return -1;
     }
+    int flags = fcntl(fd, F_GETFL, 0);
+    fcntl(fd, F_SETFL, flags | O_NONBLOCK);
     if (eventloop_add(s->eventloop, fd, EVENT_READ | EVENT_WRITE | EVENT_HUP | EVENT_ERR) < 0) {
         free(conn);
         return -1;
     }
+    #ifdef DEBUG
+    printf("[DEBUG] conn accepted fd=%d\n", fd);
+    #endif
     conn->fd = fd;
     s->conns[fd] = conn;
     return 0;
@@ -74,18 +87,39 @@ void server_handle_conn_read(struct server *s, struct connection *conn)
             else return;
         }
     }
+    #ifdef DEBUG
+    printf("[DEBUG] recv from fd=%d dataLen= %ld\n", conn->fd, strlen(buf));
+    #endif
+    struct resp_cmd req;
+    if(decode_resp_cmd(buf, 256, &req)==-1) {
+        return;
+    }
+    struct resp_cmd resp;
+    if (s->db->handle_command(s->db, &req, &resp)==0) {
+        conn->buf_len = encode_resp_cmd(&conn->write_buf, &resp);
+    }
 }
 
 void server_handle_conn_write(struct server *s, struct connection *conn)
 {
-    char *buf = "HTTP/1.1 200 OK\r\n123\r\n";
-    int n = send(conn->fd, buf, strlen(buf), MSG_DONTWAIT);
+    int n = send(conn->fd, conn->write_buf, conn->buf_len, MSG_DONTWAIT);
     if (n < 0) {
         printf("write resp error: %s\n", strerror(errno));
         return;
     }
+    #ifdef DEBUG
+    printf("[DEBUG] send to fd=%d\n", conn->fd);
+    #endif
+}
+
+void server_handle_conn_hup(struct server *s, struct connection *conn)
+{
+    #ifdef DEBUG
+    printf("[DEBUG]conn closing, fd=%d\n", conn->fd);
+    #endif
     eventloop_delete(s->eventloop, conn->fd);
-    shutdown(conn->fd, SHUT_RDWR);
+    close(conn->fd);
+    free(conn);
 }
 
 struct server *create_server(struct server_config config)
@@ -119,7 +153,7 @@ struct server *create_server(struct server_config config)
         free(s);
         return NULL;
     }
-
+    s->db = create_database();
     s->fd = sock_fd;
     struct server_op op = {
         .start = server_start,
@@ -128,6 +162,7 @@ struct server *create_server(struct server_config config)
         .shutdown = server_shutdown,
         .handle_conn_read = server_handle_conn_read,
         .handle_conn_write = server_handle_conn_write,
+        .handle_conn_hup = server_handle_conn_hup,
     };
     s->op = op;
     return s;

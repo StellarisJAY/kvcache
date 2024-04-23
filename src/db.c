@@ -3,10 +3,14 @@
 #include "lru.h"
 #include "hashmap.h"
 #include "list.h"
+#include "zset.h"
 #include <stdlib.h>
 #include <stdio.h>
 
-int db_set_str(struct database *db, int idx, struct str *key, struct str *value)
+int db_set_str(struct database *db, 
+               int idx, 
+               struct str *key, 
+               struct str *value)
 {   
     struct lru_map *m = db->get_db(db, idx);
     if (m == NULL) return 0;
@@ -17,13 +21,23 @@ int db_set_str(struct database *db, int idx, struct str *key, struct str *value)
     return 1;
 }
 
-struct str *db_get_str(struct database *db, int idx, struct str *key)
+void *db_get_entry(struct database *db, 
+                   int idx, 
+                   struct str *key, 
+                   enum db_entry_type type)
 {
     struct lru_map *m = db->get_db(db, idx);
     if (m == NULL) return NULL;
     struct db_entry *entry = m->op.get(m, key);
-    if (entry == NULL || entry->type != RAW) return NULL;
+    if (entry == NULL || entry->type != type) return NULL;
     return entry->data;
+}
+
+struct str *db_get_str(struct database *db, 
+                       int idx, 
+                       struct str *key)
+{
+    return db_get_entry(db, idx, key, RAW);
 }
 
 struct lru_map *db_get_database(struct database *db, int idx)
@@ -32,25 +46,35 @@ struct lru_map *db_get_database(struct database *db, int idx)
     return db->maps[idx];
 }
 
-struct hashmap *db_get_hash(struct database *db, int idx, struct str *key)
+struct hashmap *db_get_hash(struct database *db, 
+                            int idx, 
+                            struct str *key)
 {
-    struct lru_map *m = db->get_db(db, idx);
-    if (m == NULL) return NULL;
-    struct db_entry *entry = m->op.get(m, key);
-    if (entry == NULL || entry->type != HASH) return NULL;
-    return entry->data;
+    
+    return db_get_entry(db, idx, key, HASH);
 }
 
-struct link_list *db_get_list(struct database *db, int idx, struct str *key)
+struct link_list *db_get_list(struct database *db, 
+                              int idx, 
+                              struct str *key)
 {
-    struct lru_map *m = db->get_db(db, idx);
-    if (m == NULL) return NULL;
-    struct db_entry *entry = m->op.get(m, key);
-    if (entry == NULL || entry->type != LIST) return NULL;
-    return entry->data;
+    
+    return db_get_entry(db, idx, key, LIST);
 }
 
-void db_put_entry(struct database *db, int idx, struct str *key, enum db_entry_type type, void *value)
+struct sorted_set *db_get_zset(struct database *db, 
+                               int idx, 
+                               struct str *key)
+{
+    
+    return db_get_entry(db, idx, key, ZSET);
+}
+
+void db_put_entry(struct database *db, 
+                  int idx, 
+                  struct str *key, 
+                  enum db_entry_type type, 
+                  void *value)
 {
     struct lru_map *m = db->get_db(db, idx);
     if (m == NULL) return;
@@ -60,6 +84,15 @@ void db_put_entry(struct database *db, int idx, struct str *key, enum db_entry_t
     entry->type = type;
     entry->data = value;
     m->op.put(m, key, entry);
+}
+
+int db_handle_command(struct database *db, struct resp_cmd *request, struct resp_cmd *response)
+{
+    response->type = INT;
+    int *a = malloc(sizeof(int));
+    *a = 1;
+    response->data = a;
+    return 0;
 }
 
 struct database *create_database()
@@ -75,5 +108,6 @@ struct database *create_database()
     db->get_list = db_get_list;
     db->get_hash = db_get_hash;
     db->put_entry = db_put_entry;
+    db->handle_command = db_handle_command;
     return db;
 }

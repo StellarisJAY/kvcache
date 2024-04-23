@@ -5,6 +5,8 @@
 #include "str.h"
 #include "hashmap.h"
 #include "list.h"
+#include "zset.h"
+#include "protocol.h"
 
 enum db_entry_type {
     RAW,
@@ -30,7 +32,9 @@ struct database
 
     struct hashmap *(*get_hash)(struct database *db, int idx, struct str *key);
     struct link_list *(*get_list)(struct database *db, int idx, struct str *key);
+    struct sorted_set *(*get_zset)(struct database *db, int idx, struct str *key);
     void (*put_entry)(struct database *db, int idx, struct str *key, enum db_entry_type type, void *value);
+    int (*handle_command)(struct database *db, struct resp_cmd *request, struct resp_cmd *response);
 };
 
 struct database *create_database();

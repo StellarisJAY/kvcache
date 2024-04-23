@@ -26,4 +26,5 @@ int decode_bulk_string(char *buf, int start, int n, struct resp_cmd *cmd);
 int decode_array(char *buf, int start, int n, struct resp_cmd *cmd);
 int decode_resp_cmd(char *buf, int n, struct resp_cmd *cmd);
 int encode_resp_cmd(char **buf, struct resp_cmd *cmd);
+void free_resp_cmd(struct resp_cmd *cmd);
 #endif

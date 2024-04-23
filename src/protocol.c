@@ -2,10 +2,7 @@
 #include "str.h"
 #include <string.h>
 #include <stdlib.h>
-
-#ifdef DEBUG
 #include <stdio.h>
-#endif
 
 int decode_simple_string(char *buf, int start, int n, struct resp_cmd *cmd)
 {
@@ -57,6 +54,7 @@ int decode_array(char *buf, int start, int n, struct resp_cmd *cmd)
         if (buf[num_end] == '\r' && buf[num_end+1] == '\n') break;
     }
     if (num_end == num_start || num_end == n) return -1;
+    // make sure a zero is at the end, so atoi won't return unexpected result
     char *num = malloc(num_end - num_start+1);
     num[num_end-num_start] = 0;
     memcpy(num, buf+num_start, num_end-num_start);
@@ -104,12 +102,12 @@ int decode_resp_cmd(char *buf, int n, struct resp_cmd *cmd)
         return decode_simple_string(buf, 1, n, cmd);
     case ERROR:
         #ifdef DEBUG
-        printf("server refuse to read error message\n");
+        printf("[DEBUG] server refuse to read error message\n");
         #endif
         return -1;
     case INT:
         #ifdef DEBUG
-        printf("server refuse to read integer message\n");
+        printf("[DEBUG] server refuse to read integer message\n");
         #endif
         return -1;
     case BULK_STRING:
@@ -118,7 +116,7 @@ int decode_resp_cmd(char *buf, int n, struct resp_cmd *cmd)
         return decode_array(buf, 1, n, cmd);
     default: 
         #ifdef DEBUG
-        printf("unknown resp command type:%c\n", buf[0]);
+        printf("[DEBUG] unknown resp command type:%c\n", buf[0]);
         #endif
         return -1;
     }
@@ -126,21 +124,52 @@ int decode_resp_cmd(char *buf, int n, struct resp_cmd *cmd)
 
 int encode_resp_cmd(char **buf, struct resp_cmd *cmd)
 {
+    char *res;
     switch (cmd->type) {
     case SIMPLE_STRING:
         int n = strlen((char *)cmd->data);
-        char *res = malloc(n + 5);
+        res = malloc(n + 3);
         res[0] = cmd->type;
-        res[1] = '\r';
-        res[2] = '\n';
-        memcpy(res+3, cmd->data, n);
+        memcpy(res+1, cmd->data, n);
         *buf = res;
-        return n+5;
+        return n+3;
     case ERROR:
     case INT:
+        res = malloc(16);
+        res[0] = cmd->type;
+        res[15] = 0;
+        int num = *(int *)cmd->data;
+        sprintf(res+1, "%d\r\n", num);
+        *buf = res;
+        return strlen(res);
     case BULK_STRING:
     case ARRAY:
     default:
         return -1;
+    }
+}
+
+void free_resp_cmd(struct resp_cmd *cmd)
+{
+    switch(cmd->type) {
+    case SIMPLE_STRING:
+    case ERROR:
+    case INT:
+        free(cmd->data);
+        break;
+    case BULK_STRING:
+        struct str *s = (struct str*)cmd->data;
+        free(s->buf);
+        free(s);
+        break;
+    case ARRAY:
+        struct resp_cmd_array *arr = (struct resp_cmd_array*)cmd->data;
+        for (int i = 0; i < arr->n; i++) {
+            // todo we need to know data's type
+            free(arr->data[i]);
+        }
+        free(arr->data);
+        free(arr);
+        break;
     }
 }
