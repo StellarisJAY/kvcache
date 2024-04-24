@@ -15,7 +15,7 @@ TEST_OBJS=$(patsubst %.c, $(BUILD_DIR)/%.o, $(notdir $(TESTS)))
 
 BUILD_DIR=./build
 OBJS=$(patsubst %.c, $(BUILD_DIR)/%.o, $(notdir $(SRCS)))
-TARGET=main
+TARGET=kvcache-server
 
 CC=gcc
 CFLAGS=-I$(SRC_DIR) -I$(INCLUDE_DIR) -O3
