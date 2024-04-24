@@ -50,8 +50,20 @@ void test_decode_array()
     struct resp_cmd_array *arr = cmd.data;
     assert(arr->n == 2);
     assert(arr->data[0].type == BULK_STRING && arr->data[1].type == BULK_STRING);
-    assert(((struct str*)arr->data[0].data)->length == 2);
-    assert(((struct str*)arr->data[1].data)->length == 2);
+
+
+    char *case2 = "*2\r\n$3\r\nGET\r\n$4\r\nkey1\r\n";
+    res = decode_resp_cmd(case2, strlen(case2), &cmd);
+    assert(res==strlen(case2));
+    arr = (struct resp_cmd_array*)cmd.data;
+    assert(arr->n == 2);
+    assert(arr->data[0].type == BULK_STRING && arr->data[1].type == BULK_STRING);
+    struct str *s1 = (struct str*)arr->data[0].data;
+    struct str *s2 = (struct str*)arr->data[1].data;
+    assert(s1->length == 3);
+    assert(s2->length == 4);
+    assert(compare_str(s1, from_char_array("GET", 3)) == 0);
+    assert(compare_str(s2, from_char_array("key1", 4)) == 0);
     printf("test decode array success!\n");
 }
 

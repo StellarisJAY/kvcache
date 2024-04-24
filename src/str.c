@@ -25,7 +25,12 @@ int compare_str(void *a, void *b)
     struct str *a0 = a;
     struct str *b0 = b;
     if (a0->length == b0->length) {
-        return strcmp(a0->buf, b0->buf);
+        int res=0;
+        for(int i = 0; i < a0->length; i++) {
+            if (a0->buf[i] < b0->buf[i]) res-=1;
+            else if(a0->buf[i] > b0->buf[i]) res+=1;
+        }
+        return res;
     }else {
         return a0->length - b0->length;
     }
