@@ -120,6 +120,34 @@ int db_del(struct database   *db,
     return  0;
 }
 
+int db_strlen(struct database *db, 
+              struct connection *conn, 
+              int argc, 
+              struct resp_cmd *argv, 
+              struct resp_cmd *response)
+{
+    struct lru_map *dict = db->get_db(db, conn->selected_db);
+    if (argc != 1) {
+        response->type = ERROR;
+        response->data = ERR_WRONG_ARGUMENT_NUM;
+        return 0;
+    }
+    struct str *key = argv[0].data;
+    struct db_entry *entry = dict->op.get(dict, key);
+    if (entry == NULL) {
+        create_int_response(0, response);
+        return 0;
+    }
+    if (entry->type != RAW) {
+        response->type = ERROR;
+        response->data = ERR_WRONG_TYPE;
+        return 0;
+    }
+    int length = ((struct str*)entry->data)->length;
+    create_int_response(length, response);
+    return 0;
+}
+
 void *db_get_entry(struct database *db, 
                    int idx, 
                    struct str *key, 
@@ -216,6 +244,7 @@ struct database *create_database()
     db->handlers->op.hash_put(db->handlers, from_char_array("SET", 3), db_set_str);
     db->handlers->op.hash_put(db->handlers, from_char_array("GET", 3), db_get_str);
     db->handlers->op.hash_put(db->handlers, from_char_array("DEL", 3), db_del);
+    db->handlers->op.hash_put(db->handlers, from_char_array("STRLEN", 6), db_strlen);
 
     db->get_db = db_get_database;
     db->get_list = db_get_list;
