@@ -197,7 +197,7 @@ void free_resp_cmd(struct resp_cmd *cmd)
     }
 }
 
-void create_int_response(int value, struct resp_cmd *cmd)
+inline void create_int_response(int value, struct resp_cmd *cmd)
 {
     int *val = malloc(sizeof(int));
     *val = value;
@@ -205,32 +205,32 @@ void create_int_response(int value, struct resp_cmd *cmd)
     cmd->data = val;
 }
 // nocopy create response
-void create_simple_response(char *buf, struct resp_cmd *cmd)
+inline void create_simple_response(char *buf, struct resp_cmd *cmd)
 {
     cmd->type = SIMPLE_STRING;
     cmd->data = buf;
 }
 
-void create_error_response(char *error, struct resp_cmd *cmd)
+inline void create_error_response(char *error, struct resp_cmd *cmd)
 {
     cmd->type = ERROR;
     cmd->data = error;
 }
 
-void create_bulk_response(struct str *bulk, struct resp_cmd *cmd)
+inline void create_bulk_response(struct str *bulk, struct resp_cmd *cmd)
 {
     cmd->type = BULK_STRING;
     cmd->data = bulk;
 }
 
-void create_array_response(struct resp_cmd_array *arr, struct resp_cmd *cmd)
+inline void create_array_response(struct resp_cmd_array *arr, struct resp_cmd *cmd)
 {
     cmd->type = ARRAY;
     cmd->data = arr;
 }
 
 const char *OK_MSG = "OK";
-void ok_response(struct resp_cmd *cmd)
+inline void ok_response(struct resp_cmd *cmd)
 {
     char *ok = malloc(3);
     ok[2] = 0;
@@ -240,7 +240,7 @@ void ok_response(struct resp_cmd *cmd)
     cmd->type = BULK_STRING;
 }
 
-void nil_response(struct resp_cmd *cmd)
+inline void nil_response(struct resp_cmd *cmd)
 {
     cmd->type = NIL;
 }
