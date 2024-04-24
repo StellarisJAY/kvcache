@@ -20,6 +20,7 @@ struct connection
     struct sockaddr_in addr;
     char *write_buf;
     unsigned int buf_len;
+    int selected_db;
 };
 
 struct server 

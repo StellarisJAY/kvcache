@@ -1,6 +1,6 @@
 #ifndef PROTOCOL_H
 #define PROTOCOL_H
-
+#include "str.h"
 enum resp_type
 {
     SIMPLE_STRING='+',
@@ -29,4 +29,10 @@ int decode_array(char *buf, int start, int n, struct resp_cmd *cmd);
 int decode_resp_cmd(char *buf, int n, struct resp_cmd *cmd);
 int encode_resp_cmd(char **buf, struct resp_cmd *cmd);
 void free_resp_cmd(struct resp_cmd *cmd);
+
+void create_int_response(int value, struct resp_cmd *cmd);
+void create_simple_response(char *buf, struct resp_cmd *cmd);
+void create_error_response(char *error, struct resp_cmd *cmd);
+void create_bulk_response(struct str *bulk, struct resp_cmd *cmd);
+void create_array_response(struct resp_cmd_array *arr, struct resp_cmd *cmd);
 #endif

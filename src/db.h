@@ -7,6 +7,7 @@
 #include "list.h"
 #include "zset.h"
 #include "protocol.h"
+#include "server.h"
 
 enum db_entry_type {
     RAW,
@@ -25,17 +26,18 @@ struct db_entry
 struct database
 {
     struct lru_map *maps[MAX_DB];
+    struct hashmap *handlers;
 
     struct lru_map *(*get_db)(struct database *db, int idx);
-    struct str *(*get_str)(struct database *db, int idx, struct str *key);
-    int (*set_str)(struct database *db, int idx, struct str *key, struct str *value);
 
     struct hashmap *(*get_hash)(struct database *db, int idx, struct str *key);
     struct link_list *(*get_list)(struct database *db, int idx, struct str *key);
     struct sorted_set *(*get_zset)(struct database *db, int idx, struct str *key);
     void (*put_entry)(struct database *db, int idx, struct str *key, enum db_entry_type type, void *value);
-    int (*handle_command)(struct database *db, struct resp_cmd *request, struct resp_cmd *response);
+    int (*handle_command)(struct database *db, struct connection *conn, struct resp_cmd *request, struct resp_cmd *response);
 };
+
+typedef int (*command_handler)(struct database *db, struct connection *conn, int argc, struct resp_cmd *argv, struct resp_cmd *response);
 
 struct database *create_database();
 

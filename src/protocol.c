@@ -172,3 +172,35 @@ void free_resp_cmd(struct resp_cmd *cmd)
         break;
     }
 }
+
+void create_int_response(int value, struct resp_cmd *cmd)
+{
+    int *val = malloc(sizeof(int));
+    *val = value;
+    cmd->type = INT;
+    cmd->data = val;
+}
+// nocopy create response
+void create_simple_response(char *buf, struct resp_cmd *cmd)
+{
+    cmd->type = SIMPLE_STRING;
+    cmd->data = buf;
+}
+
+void create_error_response(char *error, struct resp_cmd *cmd)
+{
+    cmd->type = ERROR;
+    cmd->data = error;
+}
+
+void create_bulk_response(struct str *bulk, struct resp_cmd *cmd)
+{
+    cmd->type = BULK_STRING;
+    cmd->data = bulk;
+}
+
+void create_array_response(struct resp_cmd_array *arr, struct resp_cmd *cmd)
+{
+    cmd->type = ARRAY;
+    cmd->data = arr;
+}

@@ -4,21 +4,28 @@
 #include "hashmap.h"
 #include "list.h"
 #include "zset.h"
+#include "server.h"
 #include <stdlib.h>
 #include <stdio.h>
 
+int db_get_str(struct database *db, 
+               struct connection *conn,  
+               int argc, 
+               struct resp_cmd *argv, 
+               struct resp_cmd *response)
+{
+    create_int_response(1, response);
+    return 0;
+}
+
 int db_set_str(struct database *db, 
-               int idx, 
-               struct str *key, 
-               struct str *value)
-{   
-    struct lru_map *m = db->get_db(db, idx);
-    if (m == NULL) return 0;
-    struct db_entry *entry = malloc(sizeof(struct db_entry));
-    entry->type = RAW;
-    entry->data = value;
-    m->op.put(m, key, entry);
-    return 1;
+               struct connection *conn,  
+               int argc, 
+               struct resp_cmd *argv, 
+               struct resp_cmd *response)
+{
+    create_int_response(1, response);
+    return 0;
 }
 
 void *db_get_entry(struct database *db, 
@@ -31,13 +38,6 @@ void *db_get_entry(struct database *db,
     struct db_entry *entry = m->op.get(m, key);
     if (entry == NULL || entry->type != type) return NULL;
     return entry->data;
-}
-
-struct str *db_get_str(struct database *db, 
-                       int idx, 
-                       struct str *key)
-{
-    return db_get_entry(db, idx, key, RAW);
 }
 
 struct lru_map *db_get_database(struct database *db, int idx)
@@ -86,12 +86,28 @@ void db_put_entry(struct database *db,
     m->op.put(m, key, entry);
 }
 
-int db_handle_command(struct database *db, struct resp_cmd *request, struct resp_cmd *response)
+int db_handle_command(struct database *db, 
+                      struct connection *conn, 
+                      struct resp_cmd *request, 
+                      struct resp_cmd *response)
 {
-    response->type = INT;
-    int *a = malloc(sizeof(int));
-    *a = 1;
-    response->data = a;
+    // get argc and argv
+    struct resp_cmd_array *array = request->data;
+    int argc = array->n-1;
+    struct resp_cmd *argv = &array->data[1];
+    if (array->data[0].type != BULK_STRING) {
+        goto UNKNOWN_COMMAND;
+    }
+    // find command handler
+    struct str *name = array->data[0].data;
+    command_handler handler = db->handlers->op.hash_get(db->handlers, name);
+    if (handler == NULL) {
+        goto UNKNOWN_COMMAND;
+    }
+    return handler(db, conn, argc, argv, response);
+UNKNOWN_COMMAND:
+    // todo create error response
+    create_int_response(2, response);
     return 0;
 }
 
@@ -102,9 +118,11 @@ struct database *create_database()
         // todo calculate capacity
         db->maps[i] = create_lru_map(1024, compare_str, str_hash_func);
     }
+    db->handlers = create_hashmap(compare_str, str_hash_func);
+    db->handlers->op.hash_put(db->handlers, from_char_array("SET", 3), db_set_str);
+    db->handlers->op.hash_put(db->handlers, from_char_array("GET", 3), db_get_str);
+
     db->get_db = db_get_database;
-    db->get_str = db_get_str;
-    db->set_str = db_set_str;
     db->get_list = db_get_list;
     db->get_hash = db_get_hash;
     db->put_entry = db_put_entry;

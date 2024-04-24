@@ -9,7 +9,6 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
-
 #include "protocol.h"
 
 int server_start(struct server *s)
@@ -89,8 +88,7 @@ void server_handle_conn_read(struct server *s, struct connection *conn)
         return;
     }
     struct resp_cmd resp;
-    if (s->db->handle_command(s->db, &req, &resp)==0) {
-        if (conn->write_buf) free(conn->write_buf);
+    if (s->db->handle_command(s->db, conn, &req, &resp)==0) {
         conn->buf_len = encode_resp_cmd(&conn->write_buf, &resp);
     }
     free_resp_cmd(&req);
@@ -99,6 +97,7 @@ void server_handle_conn_read(struct server *s, struct connection *conn)
 
 void server_handle_conn_write(struct server *s, struct connection *conn)
 {
+    if (conn->buf_len == 0 || conn->write_buf == NULL) return;
     int n = write(conn->fd, conn->write_buf, conn->buf_len);
     if (n < 0) {
         printf("write resp error: %s\n", strerror(errno));
@@ -107,6 +106,9 @@ void server_handle_conn_write(struct server *s, struct connection *conn)
     #ifdef DEBUG
     printf("[DEBUG] send to fd=%d\n", conn->fd);
     #endif
+    free(conn->write_buf);
+    conn->write_buf = NULL;
+    conn->buf_len = 0;
 }
 
 void server_handle_conn_hup(struct server *s, struct connection *conn)
