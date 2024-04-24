@@ -91,6 +91,35 @@ int db_set_str(struct database   *db,
     return 0;
 }
 
+int db_del(struct database   *db, 
+           struct connection *conn,  
+           int                argc, 
+           struct resp_cmd   *argv, 
+           struct resp_cmd   *response)
+{
+    struct lru_map *dict = db->get_db(db, conn->selected_db);
+    if (argc == 0) {
+        response->type = ERROR;
+        response->data = ERR_WRONG_ARGUMENT_NUM;
+        return 0;
+    }
+    int res = 0;
+    for (int i = 0; i < argc; i++) {
+        struct str *key = argv[i].data;
+        struct db_entry *entry = dict->op.get(dict, key);
+        if (entry == NULL) {
+            continue;
+        }else {
+            dict->op.del(dict, key);
+            free_db_entry(entry);
+            free(entry);
+            res += 1;
+        }
+    }
+    create_int_response(res, response);
+    return  0;
+}
+
 void *db_get_entry(struct database *db, 
                    int idx, 
                    struct str *key, 
@@ -186,6 +215,7 @@ struct database *create_database()
     db->handlers = create_hashmap(compare_str, str_hash_func);
     db->handlers->op.hash_put(db->handlers, from_char_array("SET", 3), db_set_str);
     db->handlers->op.hash_put(db->handlers, from_char_array("GET", 3), db_get_str);
+    db->handlers->op.hash_put(db->handlers, from_char_array("DEL", 3), db_del);
 
     db->get_db = db_get_database;
     db->get_list = db_get_list;
