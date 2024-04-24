@@ -43,3 +43,23 @@ unsigned long long str_hash_func(void *s)
     const uint64_t key[4] = {1, 2, 3, 4};
     return HighwayHash64(data, s0->length, key);
 }
+
+struct str *copy_str(struct str *src)
+{
+    struct str *dst = malloc(sizeof(struct str));
+    dst->length = src->length;
+    dst->buf = malloc(dst->length);
+    for (int i = 0; i < dst->length; i++) {
+        dst->buf[i] = src->buf[i];
+    }
+    return dst;
+}
+
+void str_to_upper(struct str *src)
+{
+    for (int i = 0; i < src->length; i++) {
+        if (src->buf[i] >= 'a' && src->buf[i] <= 'z') {
+            src->buf[i] -= 32;
+        }
+    }
+}
