@@ -8,6 +8,10 @@
 #include "error.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
+
+#define REGISTER_COMMAND(db, cmd, handler) \
+    db->handlers->op.hash_put(db->handlers, from_char_array(cmd, strlen(cmd)), handler)
 
 int db_get_str(struct database   *db, 
                struct connection *conn,  
@@ -148,6 +152,30 @@ int db_strlen(struct database *db,
     return 0;
 }
 
+int db_exists(struct database *db, 
+              struct connection *conn, 
+              int argc, 
+              struct resp_cmd *argv, 
+              struct resp_cmd *response)
+{
+    struct lru_map *dict = db->get_db(db, conn->selected_db);
+    if (argc == 0) {
+        response->type = ERROR;
+        response->data = ERR_WRONG_ARGUMENT_NUM;
+        return 0;
+    }
+    struct str *key;
+    int res = 0;
+    for (int i = 0; i < argc; i++) {
+        key = argv[i].data;
+        if (dict->op.get(dict, key)) {
+            res++;
+        }
+    }
+    create_int_response(res, response);
+    return 0;
+}
+
 void *db_get_entry(struct database *db, 
                    int idx, 
                    struct str *key, 
@@ -241,11 +269,13 @@ struct database *create_database()
         db->maps[i] = create_lru_map(1024, compare_str, str_hash_func);
     }
     db->handlers = create_hashmap(compare_str, str_hash_func);
-    db->handlers->op.hash_put(db->handlers, from_char_array("SET", 3), db_set_str);
-    db->handlers->op.hash_put(db->handlers, from_char_array("GET", 3), db_get_str);
-    db->handlers->op.hash_put(db->handlers, from_char_array("DEL", 3), db_del);
-    db->handlers->op.hash_put(db->handlers, from_char_array("STRLEN", 6), db_strlen);
 
+    REGISTER_COMMAND(db, "SET", db_set_str);
+    REGISTER_COMMAND(db, "GET", db_get_str);
+    REGISTER_COMMAND(db, "EXISTS", db_exists);
+    REGISTER_COMMAND(db, "DEL", db_del);
+    REGISTER_COMMAND(db, "STRLEN", db_strlen);
+    
     db->get_db = db_get_database;
     db->get_list = db_get_list;
     db->get_hash = db_get_hash;
