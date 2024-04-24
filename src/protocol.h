@@ -7,7 +7,8 @@ enum resp_type
     ERROR='-',
     INT=':',
     BULK_STRING='$',
-    ARRAY='*'
+    ARRAY='*',
+    NIL='@',
 };
 
 struct resp_cmd
@@ -35,4 +36,7 @@ void create_simple_response(char *buf, struct resp_cmd *cmd);
 void create_error_response(char *error, struct resp_cmd *cmd);
 void create_bulk_response(struct str *bulk, struct resp_cmd *cmd);
 void create_array_response(struct resp_cmd_array *arr, struct resp_cmd *cmd);
+
+void ok_response(struct resp_cmd *cmd);
+void nil_response(struct resp_cmd *cmd);
 #endif

@@ -127,13 +127,15 @@ int encode_resp_cmd(char **buf, struct resp_cmd *cmd)
     char *res;
     switch (cmd->type) {
     case SIMPLE_STRING:
+    case ERROR:
         int n = strlen((char *)cmd->data);
-        res = malloc(n + 3);
+        res = malloc(n + 4);
         res[0] = cmd->type;
         memcpy(res+1, cmd->data, n);
         *buf = res;
+        res[n+1] = '\r';
+        res[n+2] = '\n';
         return n+3;
-    case ERROR:
     case INT:
         res = malloc(16);
         res[0] = cmd->type;
@@ -143,7 +145,29 @@ int encode_resp_cmd(char **buf, struct resp_cmd *cmd)
         *buf = res;
         return strlen(res);
     case BULK_STRING:
+        struct str *bulk = cmd->data;
+        res = malloc(bulk->length + 8);
+        res[0] = cmd->type;
+        sprintf(res+1, "%d\r\n", bulk->length);
+        int pos=1;
+        for (;pos < bulk->length+8; pos++) {
+            if (res[pos] == '\r' && res[pos+1] == '\n') {
+                break;
+            }
+        }
+        for (int i = 0; i < bulk->length; i++) {
+            res[pos+i+2] = bulk->buf[i];
+        }
+        res[pos+2+bulk->length] = '\r';
+        res[pos+2+bulk->length+1] = '\n';
+        *buf = res;
+        return bulk->length + pos + 4;
     case ARRAY:
+        break;
+    case NIL:
+        *buf = malloc(6);
+        strcpy(*buf, "$-1\r\n");
+        return 5;
     default:
         return -1;
     }
@@ -153,7 +177,7 @@ void free_resp_cmd(struct resp_cmd *cmd)
 {
     switch(cmd->type) {
     case SIMPLE_STRING:
-    case ERROR:
+    case ERROR: break; // don't free global error strings
     case INT:
         free(cmd->data);
         break;
@@ -203,4 +227,20 @@ void create_array_response(struct resp_cmd_array *arr, struct resp_cmd *cmd)
 {
     cmd->type = ARRAY;
     cmd->data = arr;
+}
+
+const char *OK_MSG = "OK";
+void ok_response(struct resp_cmd *cmd)
+{
+    char *ok = malloc(3);
+    ok[2] = 0;
+    strcpy(ok, OK_MSG);
+    struct str *bulk = with_char_array(ok, 2);
+    cmd->data = bulk;
+    cmd->type = BULK_STRING;
+}
+
+void nil_response(struct resp_cmd *cmd)
+{
+    cmd->type = NIL;
 }
