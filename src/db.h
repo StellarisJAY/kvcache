@@ -40,5 +40,5 @@ struct database
 typedef int (*command_handler)(struct database *db, struct connection *conn, int argc, struct resp_cmd *argv, struct resp_cmd *response);
 
 struct database *create_database();
-
+void free_db_entry(struct db_entry *entry);
 #endif

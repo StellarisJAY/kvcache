@@ -5,26 +5,89 @@
 #include "list.h"
 #include "zset.h"
 #include "server.h"
+#include "error.h"
 #include <stdlib.h>
 #include <stdio.h>
 
-int db_get_str(struct database *db, 
+int db_get_str(struct database   *db, 
                struct connection *conn,  
-               int argc, 
-               struct resp_cmd *argv, 
-               struct resp_cmd *response)
+               int                argc, 
+               struct resp_cmd   *argv, 
+               struct resp_cmd   *response)
 {
-    create_int_response(1, response);
-    return 0;
+    struct lru_map *dict = db->get_db(db, conn->selected_db);
+    if (argc == 0) {
+        response->type = ERROR;
+        response->data = ERR_WRONG_ARGUMENT_NUM;
+        return 0;
+    }
+    struct str *key;
+    if (argc == 1) {
+        key = argv[0].data;
+        struct db_entry *entry = dict->op.get(dict, key);
+        if (entry == NULL) {
+            nil_response(response);
+            return 0;
+        }
+        if (entry->type == RAW) {
+            struct str *bulk = copy_str(entry->data);
+            create_bulk_response(bulk, response);
+            return 0;
+        }else {
+            response->type = ERROR;
+            response->data = ERR_WRONG_TYPE;
+            return 0;
+        }
+    }
+
+    struct resp_cmd_array *arr = malloc(sizeof(struct resp_cmd_array));
+    arr->data = malloc(sizeof(struct resp_cmd) * argc);
+    arr->n = argc;
+    for (int i = 0; i < argc; i++) {
+        key = argv[i].data;
+        struct db_entry *entry = dict->op.get(dict, key);
+        if (entry == NULL) {
+            arr->data[i].type = NIL;
+            continue;
+        }
+        if (entry->type == RAW) {
+            struct str *bulk = copy_str(entry->data);
+            create_bulk_response(bulk, &arr->data[i]);
+        }else {
+            response->type = ERROR;
+            response->data = ERR_WRONG_TYPE;
+            free(arr->data);
+            free(arr);
+        }
+    }
+    create_array_response(arr, response);
 }
 
-int db_set_str(struct database *db, 
+int db_set_str(struct database   *db, 
                struct connection *conn,  
-               int argc, 
-               struct resp_cmd *argv, 
-               struct resp_cmd *response)
+               int                argc, 
+               struct resp_cmd   *argv, 
+               struct resp_cmd   *response)
 {
-    create_int_response(1, response);
+    struct lru_map *dict = db->get_db(db, conn->selected_db);
+    if (argc < 2) {
+        response->type = ERROR;
+        response->data = ERR_WRONG_ARGUMENT_NUM;
+        return 0;
+    }
+    struct str *key = copy_str(argv[0].data);
+    struct str *val = copy_str(argv[1].data);
+    struct db_entry *entry = dict->op.get(dict, key);
+    if (entry == NULL) {
+        db->put_entry(db, conn->selected_db, key, RAW, val);
+    }else {
+        free_db_entry(entry);
+        free(key->buf);
+        free(key);
+        entry->data = val;
+        entry->type = RAW;
+    }
+    ok_response(response);
     return 0;
 }
 
@@ -70,11 +133,11 @@ struct sorted_set *db_get_zset(struct database *db,
     return db_get_entry(db, idx, key, ZSET);
 }
 
-void db_put_entry(struct database *db, 
-                  int idx, 
-                  struct str *key, 
-                  enum db_entry_type type, 
-                  void *value)
+void db_put_entry(struct database    *db, 
+                  int                 idx, 
+                  struct str         *key, 
+                  enum db_entry_type  type, 
+                  void               *value)
 {
     struct lru_map *m = db->get_db(db, idx);
     if (m == NULL) return;
@@ -86,20 +149,22 @@ void db_put_entry(struct database *db,
     m->op.put(m, key, entry);
 }
 
-int db_handle_command(struct database *db, 
+int db_handle_command(struct database   *db, 
                       struct connection *conn, 
-                      struct resp_cmd *request, 
-                      struct resp_cmd *response)
+                      struct resp_cmd   *request, 
+                      struct resp_cmd   *response)
 {
     // get argc and argv
     struct resp_cmd_array *array = request->data;
     int argc = array->n-1;
     struct resp_cmd *argv = &array->data[1];
-    if (array->data[0].type != BULK_STRING) {
+    struct str *name;
+    if (array->data[0].type == BULK_STRING) {
+        name = array->data[0].data;
+    }else {
         goto UNKNOWN_COMMAND;
     }
-    // find command handler
-    struct str *name = array->data[0].data;
+    str_to_upper(name);
     command_handler handler = db->handlers->op.hash_get(db->handlers, name);
     if (handler == NULL) {
         goto UNKNOWN_COMMAND;
@@ -107,7 +172,7 @@ int db_handle_command(struct database *db,
     return handler(db, conn, argc, argv, response);
 UNKNOWN_COMMAND:
     // todo create error response
-    create_int_response(2, response);
+    create_int_response(-1, response);
     return 0;
 }
 
@@ -128,4 +193,19 @@ struct database *create_database()
     db->put_entry = db_put_entry;
     db->handle_command = db_handle_command;
     return db;
+}
+
+void free_db_entry(struct db_entry *entry)
+{
+    switch (entry->type) {
+    case RAW:
+        struct str *s = entry->data;
+        free(s->buf);
+        free(s);
+        break;
+    // todo free other datastructures
+    case LIST:
+    case HASH:
+    case ZSET:
+    }
 }
