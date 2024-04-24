@@ -5,6 +5,7 @@
 #include "eventloop.h"
 #include "db.h"
 #include <netinet/in.h>
+#include "connection.h"
 
 #define MAX_CONN_FD 10240
 
@@ -12,15 +13,6 @@ struct server_config
 {
     int port;
     int max_conns;
-};
-
-struct connection
-{
-    int fd;
-    struct sockaddr_in addr;
-    char *write_buf;
-    unsigned int buf_len;
-    int selected_db;
 };
 
 struct server 

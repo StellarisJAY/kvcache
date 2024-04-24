@@ -7,7 +7,7 @@
 #include "list.h"
 #include "zset.h"
 #include "protocol.h"
-#include "server.h"
+#include "connection.h"
 
 enum db_entry_type {
     RAW,
